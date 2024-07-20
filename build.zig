@@ -22,6 +22,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // Bring in our custom C code
+    exe.addIncludePath(b.path("include/"));
+
     // Link against NCurses for TUI support
     exe.linkSystemLibrary("ncurses");
     exe.linkLibC();
