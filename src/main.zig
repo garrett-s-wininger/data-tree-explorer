@@ -37,13 +37,21 @@ pub fn main() !void {
     for (parsed.map.keys()) |key| {
         const zeroTermedKey: [:0]const u8 = try allocator.dupeZ(u8, key);
         defer allocator.free(zeroTermedKey);
+        var colors: u8 = undefined;
 
-        if (std.mem.eql(u8, key, "nullKey")) {
-            terminal.print(zeroTermedKey, terminal.NULL_COLORS);
-        } else {
-            terminal.print(zeroTermedKey, terminal.DEFAULT_COLORS);
+        switch (parsed.map.get(key).?) {
+            .null => {
+                colors = terminal.NULL_COLORS;
+            },
+            .array, .object => {
+                colors = terminal.COLLECTION_COLORS;
+            },
+            else => {
+                colors = terminal.DEFAULT_COLORS;
+            },
         }
 
+        terminal.print(zeroTermedKey, colors);
         terminal.print("\n", terminal.DEFAULT_COLORS);
     }
 

@@ -4,7 +4,8 @@
 
 enum OutputColorPair {
     DEFAULT_COLORS = 0,
-    NULL_COLORS
+    NULL_COLORS,
+    COLLECTION_COLORS
 };
 
 void init(void) {
@@ -21,6 +22,7 @@ void init(void) {
     } else {
         start_color();
         init_pair(NULL_COLORS, COLOR_RED, COLOR_BLACK);
+        init_pair(COLLECTION_COLORS, COLOR_CYAN, COLOR_BLACK);
     }
 
     // Terminal configuration
