@@ -25,6 +25,23 @@ pub fn main() !void {
     defer parsed.deinit(allocator);
 
     // Interactivity
-    const data = [_][*:0]const u8{ "Line1".ptr, "Line2".ptr, "Line3".ptr };
-    terminal.run(&data, data.len);
+    terminal.init();
+    defer terminal.deinit();
+
+    // Output top-level data into terminal window
+    for (parsed.map.keys()) |key| {
+        const zeroTermedKey: [:0]const u8 = try allocator.dupeZ(u8, key);
+        defer allocator.free(zeroTermedKey);
+
+        terminal.print(zeroTermedKey);
+        terminal.print("\n");
+    }
+
+    // Main application loop
+    while (true) {
+        const input: [*:0]const u8 = terminal.getInput();
+        if (std.mem.eql(u8, std.mem.span(input), "q")) {
+            break;
+        }
+    }
 }
