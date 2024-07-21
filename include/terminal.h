@@ -1,8 +1,5 @@
 #include <locale.h>
 #include <ncurses.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 
 void init(void) {
     // Screen initialization
