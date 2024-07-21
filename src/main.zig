@@ -4,5 +4,7 @@ const terminal = @cImport({
 });
 
 pub fn main() !void {
-    terminal.run();
+    const data = [_][*:0]const u8{ "Line1".ptr, "Line2".ptr, "Line3".ptr };
+
+    terminal.run(&data, data.len);
 }

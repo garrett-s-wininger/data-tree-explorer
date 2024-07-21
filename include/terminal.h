@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void run(void) {
+void run(const char * const * const data, size_t elems) {
     // Screen initialization
     setlocale(LC_ALL, "");
     initscr();
@@ -16,13 +16,16 @@ void run(void) {
     keypad(stdscr, TRUE);
 
     // Main loop
-    printw("Hello world!");
-    
+    for (int i = 0; i < elems; ++i) {
+        printw(data[i]);
+        printw("\n");
+    }
+
     while (TRUE) {
         const chtype input_char = getch();
         const char * const translated_key = keyname(input_char);
         const char * const vim_quit = "q";
-        
+
         if (translated_key) {
             if (strncmp(translated_key, vim_quit, 3) == 0) {
                 break;
