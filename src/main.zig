@@ -7,7 +7,12 @@ pub fn main() !void {
     // Example data to parse
     const jsonData =
         \\{
-        \\"stringKey": "value"
+        \\"stringKey": "value",
+        \\"numberKey": 1,
+        \\"nullKey": null,
+        \\"objectKey": {},
+        \\"arrayKey": [],
+        \\"boolKey": true
         \\}
     ;
     var buffer = std.io.FixedBufferStream([]const u8){ .buffer = jsonData, .pos = 0 };
@@ -33,8 +38,13 @@ pub fn main() !void {
         const zeroTermedKey: [:0]const u8 = try allocator.dupeZ(u8, key);
         defer allocator.free(zeroTermedKey);
 
-        terminal.print(zeroTermedKey);
-        terminal.print("\n");
+        if (std.mem.eql(u8, key, "nullKey")) {
+            terminal.print(zeroTermedKey, terminal.NULL_COLORS);
+        } else {
+            terminal.print(zeroTermedKey, terminal.DEFAULT_COLORS);
+        }
+
+        terminal.print("\n", terminal.DEFAULT_COLORS);
     }
 
     // Main application loop
