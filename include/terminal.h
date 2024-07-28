@@ -8,7 +8,7 @@ enum OutputColorPair {
     COLLECTION_COLORS
 };
 
-struct WindowCoords {
+struct TerminalCoordinate {
      int x;
      int y;
 };
@@ -40,28 +40,16 @@ void init(void) {
     refresh();
 }
 
-void deinit(void) {
-    endwin();
-}
-
 const char* getInput(void) {
     const chtype input_char = getch();
     return keyname(input_char);
 }
 
-struct WindowCoords getCursorPosition(void) {
-    struct WindowCoords coordinates = { .x = 0, .y = 0 };
+struct TerminalCoordinate getCursorPosition(void) {
+    struct TerminalCoordinate coordinates = { .x = 0, .y = 0 };
     getyx(stdscr, coordinates.y, coordinates.x);
 
     return coordinates;
-}
-
-void moveLineUp() {
-    struct WindowCoords coordinates = getCursorPosition();
-    
-    if (coordinates.y != 0) {
-        move(coordinates.y - 1, 0);
-    }
 }
 
 void print(const char *data, enum OutputColorPair output_color_pair) {
@@ -76,8 +64,4 @@ void print(const char *data, enum OutputColorPair output_color_pair) {
     }
 
     refresh();
-}
-
-void printUncolored(const char *data) {
-    print(data, DEFAULT_COLORS);
 }

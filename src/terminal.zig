@@ -3,8 +3,20 @@ const terminal = @cImport({
     @cInclude("terminal.h");
 });
 
-fn moveLineUp(_: *ApplicationState) void {
-    terminal.moveLineUp();
+fn print(data: [*:0]const u8, color: terminal.OutputColorPair) void {
+    terminal.print(data, color);
+}
+
+fn printDefault(data: [*:0]const u8) void {
+    terminal.print(data, terminal.DEFAULT_COLORS);
+}
+
+fn lineUp(_: *ApplicationState) void {
+    const coord = terminal.getCursorPosition();
+
+    if (coord.y != 0) {
+        _ = terminal.move(coord.y - 1, 0);
+    }
 }
 
 fn quit(state: *ApplicationState) void {
@@ -19,7 +31,7 @@ pub fn run(allocator: std.mem.Allocator, parsed: *std.json.ArrayHashMap(std.json
 
     // Prepare the terminal
     terminal.init();
-    defer terminal.deinit();
+    defer _ = terminal.endwin();
 
     // Output top-level data into terminal window
     for (parsed.*.map.keys()) |key| {
@@ -39,8 +51,8 @@ pub fn run(allocator: std.mem.Allocator, parsed: *std.json.ArrayHashMap(std.json
             },
         }
 
-        terminal.print(zero_termed_key, colors);
-        terminal.printUncolored("\n");
+        print(zero_termed_key, colors);
+        printDefault("\n");
     }
 
     // Keybind configuration
@@ -48,7 +60,7 @@ pub fn run(allocator: std.mem.Allocator, parsed: *std.json.ArrayHashMap(std.json
     defer actions.deinit();
 
     try actions.put("q", &quit);
-    try actions.put("k", &moveLineUp);
+    try actions.put("k", &lineUp);
 
     // Main application loop
     while (!application_state.should_quit) {
