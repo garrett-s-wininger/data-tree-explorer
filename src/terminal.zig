@@ -23,6 +23,12 @@ fn quit(state: *ApplicationState) void {
     state.*.should_quit = true;
 }
 
+fn setupKeybinds(actions: *std.StringHashMap(*const fn (*ApplicationState) void)) !void {
+    try actions.put("q", &quit);
+    try actions.put("k", &lineUp);
+    try actions.put("^P", &lineUp);
+}
+
 const ApplicationState = struct { should_quit: bool };
 
 pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true)) !void {
@@ -66,8 +72,7 @@ pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashM
     var actions = std.StringHashMap(*const fn (*ApplicationState) void).init(allocator);
     defer actions.deinit();
 
-    try actions.put("q", &quit);
-    try actions.put("k", &lineUp);
+    try setupKeybinds(&actions);
 
     // Main application loop
     while (!application_state.should_quit) {
