@@ -11,5 +11,5 @@ pub fn main() !void {
     var parsed = try parsing.loadTestData(allocator);
     defer parsed.deinit(allocator);
 
-    try terminal.run(allocator, &parsed);
+    try terminal.run(std.json.Value, allocator, &parsed.map);
 }

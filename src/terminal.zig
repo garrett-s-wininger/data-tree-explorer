@@ -25,7 +25,7 @@ fn quit(state: *ApplicationState) void {
 
 const ApplicationState = struct { should_quit: bool };
 
-pub fn run(allocator: std.mem.Allocator, parsed: *std.json.ArrayHashMap(std.json.Value)) !void {
+pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true)) !void {
     // Generic application setup
     var application_state = ApplicationState{ .should_quit = false };
 
@@ -34,17 +34,24 @@ pub fn run(allocator: std.mem.Allocator, parsed: *std.json.ArrayHashMap(std.json
     defer _ = terminal.endwin();
 
     // Output top-level data into terminal window
-    for (parsed.*.map.keys()) |key| {
+    for (data.*.keys()) |key| {
         const zero_termed_key: [:0]const u8 = try allocator.dupeZ(u8, key);
         defer allocator.free(zero_termed_key);
         var colors: u8 = undefined;
 
-        switch (parsed.*.map.get(key).?) {
-            .null => {
-                colors = terminal.NULL_COLORS;
-            },
-            .array, .object => {
-                colors = terminal.COLLECTION_COLORS;
+        switch (T) {
+            std.json.Value => {
+                switch (data.*.get(key).?) {
+                    .null => {
+                        colors = terminal.NULL_COLORS;
+                    },
+                    .array, .object => {
+                        colors = terminal.COLLECTION_COLORS;
+                    },
+                    else => {
+                        colors = terminal.DEFAULT_COLORS;
+                    },
+                }
             },
             else => {
                 colors = terminal.DEFAULT_COLORS;
