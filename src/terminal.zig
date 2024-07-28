@@ -29,6 +29,27 @@ fn setupKeybinds(actions: *std.StringHashMap(*const fn (*ApplicationState) void)
     try actions.put("^P", &lineUp);
 }
 
+fn outputColorForData(comptime T: type, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true), key: []const u8) u8 {
+    switch (T) {
+        std.json.Value => {
+            switch (data.*.get(key).?) {
+                .null => {
+                    return terminal.NULL_COLORS;
+                },
+                .array, .object => {
+                    return terminal.COLLECTION_COLORS;
+                },
+                else => {
+                    return terminal.DEFAULT_COLORS;
+                },
+            }
+        },
+        else => {
+            return terminal.DEFAULT_COLORS;
+        },
+    }
+}
+
 const ApplicationState = struct { should_quit: bool };
 
 pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true)) !void {
@@ -43,28 +64,8 @@ pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashM
     for (data.*.keys()) |key| {
         const zero_termed_key: [:0]const u8 = try allocator.dupeZ(u8, key);
         defer allocator.free(zero_termed_key);
-        var colors: u8 = undefined;
 
-        switch (T) {
-            std.json.Value => {
-                switch (data.*.get(key).?) {
-                    .null => {
-                        colors = terminal.NULL_COLORS;
-                    },
-                    .array, .object => {
-                        colors = terminal.COLLECTION_COLORS;
-                    },
-                    else => {
-                        colors = terminal.DEFAULT_COLORS;
-                    },
-                }
-            },
-            else => {
-                colors = terminal.DEFAULT_COLORS;
-            },
-        }
-
-        print(zero_termed_key, colors);
+        print(zero_termed_key, outputColorForData(T, data, key));
         printDefault("\n");
     }
 
