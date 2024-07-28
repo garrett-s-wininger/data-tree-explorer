@@ -8,6 +8,11 @@ enum OutputColorPair {
     COLLECTION_COLORS
 };
 
+struct WindowCoords {
+     int x;
+     int y;
+};
+
 void init(void) {
     // Screen initialization
     setlocale(LC_ALL, "");
@@ -44,6 +49,21 @@ const char* getInput(void) {
     return keyname(input_char);
 }
 
+struct WindowCoords getCursorPosition(void) {
+    struct WindowCoords coordinates = { .x = 0, .y = 0 };
+    getyx(stdscr, coordinates.y, coordinates.x);
+
+    return coordinates;
+}
+
+void moveLineUp() {
+    struct WindowCoords coordinates = getCursorPosition();
+    
+    if (coordinates.y != 0) {
+        move(coordinates.y - 1, 0);
+    }
+}
+
 void print(const char *data, enum OutputColorPair output_color_pair) {
     if (has_colors() == TRUE && output_color_pair != DEFAULT_COLORS) {
         attron(COLOR_PAIR(output_color_pair));
@@ -56,4 +76,8 @@ void print(const char *data, enum OutputColorPair output_color_pair) {
     }
 
     refresh();
+}
+
+void printUncolored(const char *data) {
+    print(data, DEFAULT_COLORS);
 }

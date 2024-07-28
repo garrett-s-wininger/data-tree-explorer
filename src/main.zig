@@ -3,9 +3,10 @@ const terminal = @cImport({
     @cInclude("terminal.h");
 });
 
-pub fn main() !void {
-    // Example data to parse
-    const jsonData =
+const ApplicationState = struct { should_quit: bool };
+
+fn loadTestData(allocator: std.mem.Allocator) !std.json.ArrayHashMap(std.json.Value) {
+    const json_data =
         \\{
         \\"stringKey": "value",
         \\"numberKey": 1,
@@ -15,28 +16,44 @@ pub fn main() !void {
         \\"boolKey": true
         \\}
     ;
-    var buffer = std.io.FixedBufferStream([]const u8){ .buffer = jsonData, .pos = 0 };
-
-    // Configure our memory allocator
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
+    var buffer = std.io.FixedBufferStream([]const u8){ .buffer = json_data, .pos = 0 };
 
     // JSON Parsing
     const options = std.json.ParseOptions{ .allocate = std.json.AllocWhen.alloc_if_needed, .max_value_len = std.json.default_max_value_len };
     var reader = std.json.reader(allocator, buffer.reader());
-    var parsed = try std.json.ArrayHashMap(std.json.Value)
-        .jsonParse(allocator, &reader, options);
 
+    return try std.json.ArrayHashMap(std.json.Value)
+        .jsonParse(allocator, &reader, options);
+}
+
+fn moveLineUp(_: *ApplicationState) void {
+    terminal.moveLineUp();
+}
+
+fn quit(state: *ApplicationState) void {
+    state.*.should_quit = true;
+}
+
+pub fn main() !void {
+    // Prepare memory allocation
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const allocator = gpa.allocator();
+
+    // Generic application setup
+    var application_state = ApplicationState{ .should_quit = false };
+
+    // Load Data
+    var parsed = try loadTestData(allocator);
     defer parsed.deinit(allocator);
 
-    // Interactivity
+    // Prepare the terminal
     terminal.init();
     defer terminal.deinit();
 
     // Output top-level data into terminal window
     for (parsed.map.keys()) |key| {
-        const zeroTermedKey: [:0]const u8 = try allocator.dupeZ(u8, key);
-        defer allocator.free(zeroTermedKey);
+        const zero_termed_key: [:0]const u8 = try allocator.dupeZ(u8, key);
+        defer allocator.free(zero_termed_key);
         var colors: u8 = undefined;
 
         switch (parsed.map.get(key).?) {
@@ -51,15 +68,23 @@ pub fn main() !void {
             },
         }
 
-        terminal.print(zeroTermedKey, colors);
-        terminal.print("\n", terminal.DEFAULT_COLORS);
+        terminal.print(zero_termed_key, colors);
+        terminal.printUncolored("\n");
     }
 
+    // Keybind configuration
+    var actions = std.StringHashMap(*const fn (*ApplicationState) void).init(allocator);
+    defer actions.deinit();
+
+    try actions.put("q", &quit);
+    try actions.put("k", &moveLineUp);
+
     // Main application loop
-    while (true) {
+    while (!application_state.should_quit) {
         const input: [*:0]const u8 = terminal.getInput();
-        if (std.mem.eql(u8, std.mem.span(input), "q")) {
-            break;
+
+        if (actions.get(std.mem.span(input))) |action| {
+            action(&application_state);
         }
     }
 }
