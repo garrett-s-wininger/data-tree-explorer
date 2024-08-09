@@ -52,6 +52,13 @@ struct TerminalCoordinate getCursorPosition(void) {
     return coordinates;
 }
 
+struct TerminalCoordinate getMaxPosition(void) {
+    struct TerminalCoordinate coordinates = { .x = 0, .y = 0 };
+    getmaxyx(stdscr, coordinates.y, coordinates.x);
+
+    return coordinates;
+}
+
 void print(const char *data, enum OutputColorPair output_color_pair) {
     if (has_colors() == TRUE && output_color_pair != DEFAULT_COLORS) {
         attron(COLOR_PAIR(output_color_pair));

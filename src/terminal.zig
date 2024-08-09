@@ -19,6 +19,15 @@ fn lineUp(_: *ApplicationState) void {
     }
 }
 
+fn lineDown(_: *ApplicationState) void {
+    const coord = terminal.getCursorPosition();
+    const max_coord = terminal.getMaxPosition();
+
+    if (coord.y < max_coord.y) {
+        _ = terminal.move(coord.y + 1, 0);
+    }
+}
+
 fn quit(state: *ApplicationState) void {
     state.*.should_quit = true;
 }
@@ -27,6 +36,8 @@ fn setupKeybinds(actions: *std.StringHashMap(*const fn (*ApplicationState) void)
     try actions.put("q", &quit);
     try actions.put("k", &lineUp);
     try actions.put("^P", &lineUp);
+    try actions.put("j", &lineDown);
+    try actions.put("^N", &lineDown);
 }
 
 fn outputColorForData(comptime T: type, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true), key: []const u8) u8 {
