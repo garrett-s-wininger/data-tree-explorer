@@ -19,11 +19,10 @@ fn lineUp(_: *ApplicationState) void {
     }
 }
 
-fn lineDown(_: *ApplicationState) void {
+fn lineDown(state: *ApplicationState) void {
     const coord = terminal.getCursorPosition();
-    const max_coord = terminal.getMaxPosition();
 
-    if (coord.y < max_coord.y) {
+    if (coord.y < state.*.data_lines - 1) {
         _ = terminal.move(coord.y + 1, 0);
     }
 }
@@ -61,23 +60,26 @@ fn outputColorForData(comptime T: type, data: *std.ArrayHashMapUnmanaged([]const
     }
 }
 
-const ApplicationState = struct { should_quit: bool };
+const ApplicationState = struct { should_quit: bool, data_lines: u64 };
 
 pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true)) !void {
     // Generic application setup
-    var application_state = ApplicationState{ .should_quit = false };
+    var application_state = ApplicationState{ .should_quit = false, .data_lines = data.*.keys().len };
 
     // Prepare the terminal
     terminal.init();
     defer _ = terminal.endwin();
 
     // Output top-level data into terminal window
-    for (data.*.keys()) |key| {
+    for (data.*.keys(), 0..) |key, idx| {
         const zero_termed_key: [:0]const u8 = try allocator.dupeZ(u8, key);
         defer allocator.free(zero_termed_key);
 
         print(zero_termed_key, outputColorForData(T, data, key));
-        printDefault("\n");
+
+        if (idx < data.*.keys().len - 1) {
+            printDefault("\n");
+        }
     }
 
     // Keybind configuration
