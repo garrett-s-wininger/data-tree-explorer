@@ -27,6 +27,14 @@ fn lineDown(state: *ApplicationState) void {
     }
 }
 
+fn lineFirst(_: *ApplicationState) void {
+    _ = terminal.move(0, 0);
+}
+
+fn lineLast(state: *ApplicationState) void {
+    _ = terminal.move(@intCast(state.*.data_lines - 1), 0);
+}
+
 fn quit(state: *ApplicationState) void {
     state.*.should_quit = true;
 }
@@ -37,6 +45,8 @@ fn setupKeybinds(actions: *std.StringHashMap(*const fn (*ApplicationState) void)
     try actions.put("^P", &lineUp);
     try actions.put("j", &lineDown);
     try actions.put("^N", &lineDown);
+    try actions.put("g", &lineFirst);
+    try actions.put("$", &lineLast);
 }
 
 fn outputColorForData(comptime T: type, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true), key: []const u8) u8 {
@@ -79,6 +89,8 @@ pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashM
 
         if (idx < data.*.keys().len - 1) {
             printDefault("\n");
+        } else {
+            lineLast(&application_state);
         }
     }
 
