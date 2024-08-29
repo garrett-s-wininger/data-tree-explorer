@@ -14,7 +14,7 @@ fn printDefault(data: [*:0]const u8) void {
 fn lineUp(_: *ApplicationState) void {
     const coord = terminal.getCursorPosition();
 
-    if (coord.y != 0) {
+    if (coord.y != 1) {
         _ = terminal.move(coord.y - 1, 0);
     }
 }
@@ -22,13 +22,13 @@ fn lineUp(_: *ApplicationState) void {
 fn lineDown(state: *ApplicationState) void {
     const coord = terminal.getCursorPosition();
 
-    if (coord.y < state.*.data_lines - 1) {
+    if (coord.y < state.*.data_lines) {
         _ = terminal.move(coord.y + 1, 0);
     }
 }
 
 fn lineFirst(_: *ApplicationState) void {
-    _ = terminal.move(0, 0);
+    _ = terminal.move(1, 0);
 }
 
 fn lineLast(state: *ApplicationState) void {
@@ -70,6 +70,15 @@ fn outputColorForData(comptime T: type, data: *std.ArrayHashMapUnmanaged([]const
     }
 }
 
+fn printHeader() void {
+    const max_x: usize = @intCast(terminal.getMaxPosition().x);
+    const header = "Data Tree Explorer\n";
+    const padding = (max_x - header.len) / 2;
+
+    _ = terminal.move(terminal.getCursorPosition().y, @intCast(padding));
+    printDefault(header);
+}
+
 const ApplicationState = struct { should_quit: bool, data_lines: u64 };
 
 pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashMapUnmanaged([]const u8, T, std.array_hash_map.StringContext, true)) !void {
@@ -79,6 +88,8 @@ pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashM
     // Prepare the terminal
     terminal.init();
     defer _ = terminal.endwin();
+
+    printHeader();
 
     // Output top-level data into terminal window
     for (data.*.keys(), 0..) |key, idx| {
@@ -99,6 +110,7 @@ pub fn run(comptime T: type, allocator: std.mem.Allocator, data: *std.ArrayHashM
     defer actions.deinit();
 
     try setupKeybinds(&actions);
+    lineFirst(&application_state);
 
     // Main application loop
     while (!application_state.should_quit) {
