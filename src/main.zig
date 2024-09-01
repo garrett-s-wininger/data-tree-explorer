@@ -1,6 +1,5 @@
-const std = @import("std");
-
 const parsing = @import("parsing.zig");
+const std = @import("std");
 const terminal = @import("terminal.zig");
 
 fn usage(_: std.mem.Allocator) !void {
@@ -12,15 +11,20 @@ fn usage(_: std.mem.Allocator) !void {
 
 fn demo(allocator: std.mem.Allocator) !void {
     var parsed = try parsing.loadTestData(allocator);
-    defer parsed.deinit(allocator);
+    defer parsed.deinit();
 
-    try terminal.run(std.json.Value, allocator, &parsed.map);
+    try terminal.run(allocator, @ptrCast(&parsed.value.object));
 }
 
 pub fn main() !void {
     // Prepare memory allocation
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
+    defer {
+        if (gpa.deinit() == .leak) {
+            @panic("Memory leak detected in application.");
+        }
+    }
 
     // Parse Options
     var args = try std.process.argsWithAllocator(allocator);
@@ -29,17 +33,14 @@ pub fn main() !void {
     // Skip the executable for argument parsing
     _ = args.next();
     var argCount: u8 = 0;
-
-    const ParseErrors = error{ SyntaxError, UnexpectedEndOfInput, OutOfMemory, UnexpectedToken, ValueTooLong, Overflow, InvalidCharacter, InvalidNumber, InvalidEnumTag, DuplicateField, UnknownField, MissingField, LengthMismatch };
-
-    var action: *const fn (std.mem.Allocator) ParseErrors!void = &usage;
+    var action: *const fn (std.mem.Allocator) anyerror!void = &usage;
 
     while (args.next()) |arg| {
         argCount += 1;
 
         if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help") or argCount > 1) {
             action = &usage;
-        } else if (std.mem.eql(u8, arg, "--demo")) {
+        } else if (std.mem.eql(u8, arg, "--demo") or std.mem.eql(u8, arg, "--")) {
             action = &demo;
         }
     }
