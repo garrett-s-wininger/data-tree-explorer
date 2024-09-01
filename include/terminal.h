@@ -32,6 +32,7 @@ void init(void) {
 
     // Terminal configuration
     cbreak();
+    nodelay(stdscr, true);
     noecho();
     noqiflush();
     keypad(stdscr, TRUE);
