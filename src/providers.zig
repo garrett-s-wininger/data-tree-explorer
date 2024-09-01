@@ -9,6 +9,14 @@ pub fn stdIn(allocator: std.mem.Allocator) !std.json.Parsed(std.json.Value) {
     const data = try reader.readAllAlloc(allocator, allocation_limit);
     defer allocator.free(data);
 
+    const in_stat = try in.stat();
+
+    if (in_stat.kind == .named_pipe) {
+        in.close();
+        const tty = try std.fs.openFileAbsolute("/dev/tty", .{ .mode = .read_write });
+        _ = std.os.linux.dup(tty.handle);
+    }
+
     return std.json.parseFromSlice(std.json.Value, allocator, data, .{});
 }
 
