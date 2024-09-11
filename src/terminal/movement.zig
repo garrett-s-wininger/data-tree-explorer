@@ -1,28 +1,54 @@
-const state = @import("state.zig");
-const terminal = @cImport({
+const coordinate = @import("coordinate.zig");
+const ncurses = @cImport({
     @cInclude("terminal.h");
 });
 
-pub fn lineDown(app_state: *state.ApplicationState) void {
-    const coord = terminal.getCursorPosition();
+const std = @import("std");
 
-    if (coord.y < app_state.*.data_lines) {
-        _ = terminal.move(coord.y + 1, 0);
+const Coordinate = coordinate.Coordinate;
+
+pub fn currentPosition() Coordinate {
+    const pos = ncurses.getCursorPosition();
+    return .{ .line = @intCast(pos.y), .column = @intCast(pos.x) };
+}
+
+pub fn firstLine() void {
+    moveTo(0, 0);
+}
+
+pub fn lastLine() void {
+    moveTo(max().line, 0);
+}
+
+pub fn max() Coordinate {
+    const coord = ncurses.getMaxPosition();
+
+    return .{ .line = @intCast(coord.y - 1), .column = @intCast(coord.x - 1) };
+}
+
+pub fn moveTo(line: usize, column: usize) void {
+    var destinationLine = line;
+    var destinationColumn = column;
+
+    if (line > max().line) {
+        destinationLine = max().line;
     }
-}
 
-pub fn lineFirst(_: *state.ApplicationState) void {
-    _ = terminal.move(1, 0);
-}
-
-pub fn lineLast(app_state: *state.ApplicationState) void {
-    _ = terminal.move(@intCast(app_state.*.data_lines - 1), 0);
-}
-
-pub fn lineUp(_: *state.ApplicationState) void {
-    const coord = terminal.getCursorPosition();
-
-    if (coord.y != 1) {
-        _ = terminal.move(coord.y - 1, 0);
+    if (column > max().column) {
+        destinationColumn = max().column;
     }
+
+    _ = ncurses.move(@intCast(line), @intCast(column));
+}
+
+pub fn nextLine() void {
+    moveTo(@intCast(ncurses.getCursorPosition().y + 1), 0);
+}
+
+pub fn previousLine() void {
+    if (ncurses.getCursorPosition().y == 0) {
+        return;
+    }
+
+    moveTo(@intCast(ncurses.getCursorPosition().y - 1), 0);
 }

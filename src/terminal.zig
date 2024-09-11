@@ -2,57 +2,71 @@ const movement = @import("terminal/movement.zig");
 const output = @import("terminal/output.zig");
 const state = @import("terminal/state.zig");
 const std = @import("std");
-const terminal = @cImport({
-    @cInclude("terminal.h");
-});
+const terminal = @import("terminal/ncurses.zig");
 
-fn setupKeybinds(actions: *std.StringHashMap(*const fn (*state.ApplicationState) void)) !void {
-    try actions.put("q", &state.quit);
-    try actions.put("k", &movement.lineUp);
-    try actions.put("^P", &movement.lineUp);
-    try actions.put("j", &movement.lineDown);
-    try actions.put("^N", &movement.lineDown);
-    try actions.put("g", &movement.lineFirst);
-    try actions.put("$", &movement.lineLast);
+// Global application state
+var application_state = state.ApplicationState{ .should_quit = false };
+
+fn outputColorForData(data: *std.ArrayHashMapUnmanaged([]const u8, std.json.Value, std.array_hash_map.StringContext, true), key: []const u8) u8 {
+    switch (data.*.get(key).?) {
+        .null => {
+            return output.NULL_COLORS;
+        },
+        .array, .object => {
+            return output.COLLECTION_COLORS;
+        },
+        else => {
+            return output.DEFAULT_COLORS;
+        },
+    }
+}
+
+fn setupKeybinds(actions: *std.StringHashMap(*const fn () void)) !void {
+    try actions.put("q", &quit);
+    try actions.put("k", &movement.previousLine);
+    try actions.put("^P", &movement.previousLine);
+    try actions.put("j", &movement.nextLine);
+    try actions.put("^N", &movement.nextLine);
+    try actions.put("g", &movement.firstLine);
+    try actions.put("$", &movement.lastLine);
+}
+
+fn quit() void {
+    application_state.should_quit = true;
 }
 
 pub fn run(allocator: std.mem.Allocator, data: *std.ArrayHashMapUnmanaged([]const u8, std.json.Value, std.array_hash_map.StringContext, true)) !void {
-    // Generic application setup
-    var application_state = state.ApplicationState{ .should_quit = false, .data_lines = data.*.keys().len };
-
     // Prepare the terminal
     terminal.init();
-    defer _ = terminal.endwin();
+    defer terminal.deinit();
 
-    output.printHeader();
+    try output.printHeader(allocator);
 
     // Output top-level data into terminal window
     for (data.*.keys(), 0..) |key, idx| {
-        const zero_termed_key: [:0]const u8 = try allocator.dupeZ(u8, key);
-        defer allocator.free(zero_termed_key);
-
-        output.print(zero_termed_key, output.outputColorForData(data, key));
+        try output.print(allocator, key, outputColorForData(data, key));
 
         if (idx < data.*.keys().len - 1) {
-            output.printDefault("\n");
+            try output.printDefault(allocator, "\n");
         } else {
-            movement.lineLast(&application_state);
+            movement.lastLine();
         }
     }
 
     // Keybind configuration
-    var actions = std.StringHashMap(*const fn (*state.ApplicationState) void).init(allocator);
+    var actions = std.StringHashMap(*const fn () void).init(allocator);
     defer actions.deinit();
 
     try setupKeybinds(&actions);
-    movement.lineFirst(&application_state);
+    movement.firstLine();
 
     // Main application loop
     while (!application_state.should_quit) {
-        const input: [*:0]const u8 = terminal.getInput();
+        const input = try terminal.getInput(allocator);
+        defer allocator.free(input);
 
-        if (actions.get(std.mem.span(input))) |action| {
-            action(&application_state);
+        if (actions.get(input)) |action| {
+            action();
         }
     }
 }

@@ -1,35 +1,30 @@
-const std = @import("std");
-const terminal = @cImport({
+const ncurses = @cImport({
     @cInclude("terminal.h");
 });
 
-pub fn outputColorForData(data: *std.ArrayHashMapUnmanaged([]const u8, std.json.Value, std.array_hash_map.StringContext, true), key: []const u8) u8 {
-    switch (data.*.get(key).?) {
-        .null => {
-            return terminal.NULL_COLORS;
-        },
-        .array, .object => {
-            return terminal.COLLECTION_COLORS;
-        },
-        else => {
-            return terminal.DEFAULT_COLORS;
-        },
-    }
+const movement = @import("movement.zig");
+const std = @import("std");
+
+pub const COLLECTION_COLORS = ncurses.COLLECTION_COLORS;
+pub const DEFAULT_COLORS = ncurses.DEFAULT_COLORS;
+pub const NULL_COLORS = ncurses.NULL_COLORS;
+
+pub fn print(allocator: std.mem.Allocator, data: []const u8, color: ncurses.OutputColorPair) !void {
+    const zero_termed_key: [:0]const u8 = try allocator.dupeZ(u8, data);
+    defer allocator.free(zero_termed_key);
+
+    ncurses.print(zero_termed_key, color);
 }
 
-pub fn print(data: [*:0]const u8, color: terminal.OutputColorPair) void {
-    terminal.print(data, color);
+pub fn printDefault(allocator: std.mem.Allocator, data: []const u8) !void {
+    try print(allocator, data, ncurses.DEFAULT_COLORS);
 }
 
-pub fn printDefault(data: [*:0]const u8) void {
-    terminal.print(data, terminal.DEFAULT_COLORS);
-}
-
-pub fn printHeader() void {
-    const max_x: usize = @intCast(terminal.getMaxPosition().x);
+pub fn printHeader(allocator: std.mem.Allocator) !void {
+    const max_x: usize = @intCast(ncurses.getMaxPosition().x);
     const header = "Data Tree Explorer\n";
     const padding = (max_x - header.len) / 2;
 
-    _ = terminal.move(terminal.getCursorPosition().y, @intCast(padding));
-    printDefault(header);
+    movement.moveTo(movement.currentPosition().line, @intCast(padding));
+    try printDefault(allocator, header);
 }
